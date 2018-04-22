@@ -1,6 +1,8 @@
 import masker from './masker'
 import tokens from './tokens'
 
+const handlers = [];
+
 // https://developer.mozilla.org/en-US/docs/Web/Guide/Events/Creating_and_triggering_events#The_old-fashioned_way
 function event (name) {
   var evt = document.createEvent('Event')
@@ -8,8 +10,13 @@ function event (name) {
   return evt
 }
 
-export default function (el, binding) {
+const bind = function (el, binding) {
   var config = binding.value
+
+  if (!config || handlers.indexOf(el) !== -1) {
+    return
+  }
+
   if (Array.isArray(config) || typeof config === 'string') {
     config = {
       mask: config,
@@ -25,6 +32,8 @@ export default function (el, binding) {
       el = els[0]
     }
   }
+
+  handlers.push(el)
 
   el.oninput = function (evt) {
     if (!evt.isTrusted) return // avoid infinite loop
@@ -64,4 +73,28 @@ export default function (el, binding) {
     el.value = newDisplay
     el.dispatchEvent(event('input'))
   }
+}
+
+const unbind = function(el) {
+  const index = handlers.indexOf(el)
+  
+  if (index !== -1) {
+    handlers.splice(index, 1)
+  }
+}
+
+const update = function(el, binding) {
+	if (binding.value === binding.oldValue) {
+    return
+  }
+
+  if (binding.value) {
+    bind(el, binding)
+  } else {
+    unbind(el)
+  }
+}
+
+export default {
+	bind, unbind, update
 }
